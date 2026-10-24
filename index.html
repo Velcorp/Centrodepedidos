@@ -5,29 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor de Pedidos de Tortas</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Fuente amigable y moderna -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FIREBASE COMPAT LIBRARIES (Evita errores de conexión) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
     <style>
         body { font-family: 'Nunito', sans-serif; }
-        /* Ocultar elementos */
         .hidden { display: none !important; }
-        /* Transiciones suaves */
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Ajuste de scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f5f5f4; }
         ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
-        /* Sombras de colores personalizados */
         .shadow-soft-rose { box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.2), 0 8px 10px -6px rgba(244, 63, 94, 0.1); }
         .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
     </style>
 </head>
 <body class="bg-[#FDFBF7] text-stone-800 min-h-screen pb-12">
+
+    <!-- PANTALLA DE CARGA -->
+    <div id="loading-screen" class="fixed inset-0 bg-[#FDFBF7] z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mb-4"></div>
+        <h3 class="text-xl font-extrabold text-stone-800">Conectando a la Nube...</h3>
+        <p class="text-stone-500 font-medium mt-2">Sincronizando tus pedidos dulces</p>
+    </div>
 
     <!-- Navegación Flotante -->
     <div class="sticky top-4 z-30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
@@ -63,7 +70,6 @@
 
     <!-- Área Principal -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         <!-- VISTA: NUEVO PEDIDO -->
         <div id="view-form" class="fade-in max-w-5xl mx-auto bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 overflow-hidden relative">
             <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-rose-50 to-orange-50 opacity-50 z-0"></div>
@@ -90,43 +96,36 @@
                     
                     <div class="md:col-span-2 lg:col-span-2">
                         <label class="block text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                            <span class="bg-rose-100 text-rose-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> 
-                            Concepto / Temática
+                            <span class="bg-rose-100 text-rose-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Concepto / Temática
                         </label>
                         <input type="text" id="form-concept" required placeholder="Ej. Alicia en el País de las Maravillas" class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium"/>
                     </div>
                     <div class="md:col-span-1 lg:col-span-1">
                         <label class="block text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                            <span class="bg-emerald-100 text-emerald-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> 
-                            Fecha y Hora
+                            <span class="bg-emerald-100 text-emerald-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Fecha y Hora
                         </label>
                         <input type="datetime-local" id="form-date" required class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium text-stone-600"/>
                     </div>
                     <div class="md:col-span-1 lg:col-span-1">
                         <label class="block text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                            <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> 
-                            Lugar de Entrega
+                            <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> Lugar de Entrega
                         </label>
                         <input type="text" id="form-location" required placeholder="Dirección exacta" class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium"/>
                     </div>
 
                     <div class="md:col-span-2 lg:col-span-4">
                         <label class="block text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                            <span class="bg-amber-100 text-amber-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span> 
-                            Descripción Detallada
+                            <span class="bg-amber-100 text-amber-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span> Descripción Detallada
                         </label>
-                        <textarea id="form-description" required rows="2" placeholder="Porciones, sabor del bizcocho, rellenos, cubierta, detalles especiales..." class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all resize-none text-sm font-medium"></textarea>
+                        <textarea id="form-description" required rows="2" placeholder="Porciones, sabor del bizcocho, rellenos, cubierta..." class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all resize-none text-sm font-medium"></textarea>
                     </div>
 
-                    <!-- NUEVO CAMPO: IMAGEN DE REFERENCIA -->
                     <div class="md:col-span-2 lg:col-span-4">
                         <label class="block text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
-                            <span class="bg-purple-100 text-purple-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">5</span> 
-                            Imagen de Referencia (Opcional)
+                            <span class="bg-purple-100 text-purple-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">5</span> Imagen de Referencia (Opcional)
                         </label>
                         <input type="file" id="form-image" accept="image/jpeg, image/png, image/webp" class="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200 cursor-pointer"/>
                         
-                        <!-- Contenedor para ver la imagen elegida -->
                         <div id="form-image-preview-container" class="hidden mt-3 relative inline-block">
                             <img id="form-image-preview" src="" class="h-32 w-32 object-cover rounded-xl border border-stone-200 shadow-sm" alt="Preview"/>
                             <button type="button" onclick="clearNewImage()" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1.5 shadow-md hover:bg-rose-600 transition-colors">
@@ -138,13 +137,8 @@
 
                 <div class="pt-6">
                     <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-extrabold text-lg py-4 px-4 rounded-2xl shadow-soft-rose transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
-                        Guardar Pedido
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Guardar Pedido
                     </button>
-                </div>
-                
-                <div id="form-success-msg" class="hidden p-4 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm rounded-2xl text-center font-bold shadow-sm">
-                    ✨ ¡Pedido guardado exitosamente!
                 </div>
             </form>
         </div>
@@ -158,9 +152,7 @@
                 </div>
             </div>
             
-            <div id="orders-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Las tarjetas se generan aquí con JavaScript -->
-            </div>
+            <div id="orders-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
             
             <div id="empty-state" class="hidden bg-white rounded-3xl border border-dashed border-stone-200 p-16 text-center shadow-sm">
                 <div class="text-rose-200 flex justify-center mb-4">
@@ -187,85 +179,44 @@
                     <div class="grid grid-cols-7 gap-2 mb-4 text-center text-xs font-extrabold text-stone-400 uppercase tracking-widest">
                         <div>Dom</div><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div>
                     </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-2 md:gap-3">
-                        <!-- Días generados por JS -->
-                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2 md:gap-3"></div>
                 </div>
             </div>
 
-            <!-- Pedidos del día seleccionado -->
             <div id="selected-day-container" class="hidden fade-in bg-stone-50 p-6 md:p-8 rounded-3xl border border-stone-200">
-                <h3 id="selected-day-title" class="text-xl font-extrabold text-stone-800 mb-6 flex items-center gap-3">
-                    <span class="bg-white p-2 rounded-xl shadow-sm"><svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></span>
-                    Entregas para el día
-                </h3>
-                <div id="selected-day-orders" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Tarjetas de pedidos de ese día -->
-                </div>
-                <div id="selected-day-empty" class="hidden bg-white border border-dashed border-stone-200 rounded-2xl p-10 text-center text-stone-500 font-medium">
-                    Día libre. No hay entregas programadas.
-                </div>
+                <h3 id="selected-day-title" class="text-xl font-extrabold text-stone-800 mb-6 flex items-center gap-3"></h3>
+                <div id="selected-day-orders" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                <div id="selected-day-empty" class="hidden bg-white border border-dashed border-stone-200 rounded-2xl p-10 text-center text-stone-500 font-medium">Día libre. No hay entregas programadas.</div>
             </div>
         </div>
 
         <!-- VISTA: ANÁLISIS -->
         <div id="view-analysis" class="hidden fade-in space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Ingreso Total -->
                 <div class="bg-gradient-to-br from-stone-800 to-stone-900 rounded-3xl p-8 text-white shadow-xl flex flex-col justify-center relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-8 opacity-10">
-                        <svg class="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <div class="flex items-center gap-2 text-rose-300 text-xs font-extrabold tracking-widest mb-3 relative z-10">
-                        INGRESO HISTÓRICO TOTAL
-                    </div>
+                    <div class="flex items-center gap-2 text-rose-300 text-xs font-extrabold tracking-widest mb-3 relative z-10">INGRESO HISTÓRICO TOTAL</div>
                     <div class="text-5xl font-extrabold mb-2 relative z-10 tracking-tight" id="analysis-total-income">S/ 0.00</div>
                     <div class="text-stone-400 font-medium text-sm relative z-10">Suma de todos tus pedidos registrados</div>
                 </div>
-
-                <!-- Total Pedidos -->
                 <div class="bg-white rounded-3xl p-8 border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between">
                     <div>
                         <div class="text-stone-400 text-xs font-extrabold tracking-widest mb-3">TOTAL PEDIDOS</div>
                         <div class="text-5xl font-extrabold text-stone-800 tracking-tight" id="analysis-total-orders">0</div>
                     </div>
-                    <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shadow-inner">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15c0-4.418-4.03-8-9-8s-9 3.582-9 8m18 0v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m18 0h-2m-14 0H4m10-4v-3m-6 3V9m12 0a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4z"></path></svg>
-                    </div>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Evolución de Pedidos -->
                 <div class="bg-white rounded-3xl p-8 border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col h-80">
-                    <div class="flex items-center gap-2 text-stone-800 text-sm font-extrabold tracking-widest mb-8">
-                        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                        EVOLUCIÓN MENSUAL
-                    </div>
+                    <div class="flex items-center gap-2 text-stone-800 text-sm font-extrabold tracking-widest mb-8">EVOLUCIÓN MENSUAL</div>
                     <div class="flex-1 flex items-end gap-3" id="analysis-monthly-chart"></div>
                     <div class="flex justify-between gap-3 mt-4" id="analysis-monthly-labels"></div>
                 </div>
-
-                <!-- Temáticas más solicitadas -->
                 <div class="bg-white rounded-3xl p-8 border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    <div class="flex items-center gap-2 text-stone-800 text-sm font-extrabold tracking-widest mb-6">
-                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        TOP TEMÁTICAS
-                    </div>
+                    <div class="flex items-center gap-2 text-stone-800 text-sm font-extrabold tracking-widest mb-6">TOP TEMÁTICAS</div>
                     <div class="space-y-5" id="analysis-top-concepts"></div>
                 </div>
             </div>
-
-            <!-- Análisis de Lugares -->
-            <div class="bg-white rounded-3xl p-8 border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                <div class="flex items-center gap-2 text-stone-800 text-sm font-extrabold tracking-widest mb-6">
-                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                    TOP LUGARES DE ENTREGA
-                </div>
-                <div class="space-y-5" id="analysis-top-locations"></div>
-            </div>
         </div>
-
     </main>
 
     <!-- MODAL DE EDICIÓN -->
@@ -308,14 +259,12 @@
                         <label class="block text-sm font-bold text-stone-700 mb-2">Descripción Detallada</label>
                         <textarea id="edit-description" required rows="2" class="w-full px-5 py-3.5 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none resize-none font-medium text-sm"></textarea>
                     </div>
-                    
                     <div class="md:col-span-2 lg:col-span-4">
                         <label class="block text-sm font-bold text-stone-700 mb-2">Cambiar Imagen de Referencia (Opcional)</label>
-                        <input type="file" id="edit-image" accept="image/jpeg, image/png, image/webp" class="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200 cursor-pointer"/>
-                        
+                        <input type="file" id="edit-image" accept="image/jpeg, image/png, image/webp" class="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all text-sm font-medium"/>
                         <div id="edit-image-preview-container" class="hidden mt-3 relative inline-block">
                             <img id="edit-image-preview" src="" class="h-32 w-32 object-cover rounded-xl border border-stone-200 shadow-sm" alt="Preview"/>
-                            <button type="button" onclick="clearEditImage()" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1.5 shadow-md hover:bg-rose-600 transition-colors">
+                            <button type="button" onclick="clearEditImage()" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1.5 shadow-md hover:bg-rose-600">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
@@ -329,31 +278,41 @@
         </div>
     </div>
 
-    <!-- MODAL DE IMAGEN DE REFERENCIA -->
-    <div id="image-modal" class="hidden fixed inset-0 bg-stone-900/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4 transition-opacity" onclick="closeImageModal()">
+    <!-- MODAL DE IMAGEN -->
+    <div id="image-modal" class="hidden fixed inset-0 bg-stone-900/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onclick="closeImageModal()">
         <div class="relative max-w-4xl w-full flex justify-center items-center">
             <button onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-rose-400 p-2 transition-colors">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <img id="image-modal-content" src="" class="max-h-[85vh] max-w-full rounded-xl shadow-2xl object-contain" alt="Imagen de Referencia" onclick="event.stopPropagation()">
+            <img id="image-modal-content" src="" class="max-h-[85vh] max-w-full rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
         </div>
     </div>
 
-    <!-- CONTENEDOR DE NOTIFICACIONES (TOASTS) -->
     <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3"></div>
 
-    <!-- SCRIPT DE LA APLICACIÓN -->
     <script>
+        // --- CONFIGURACIÓN FIREBASE ---
+        // ¡TUS LLAVES OFICIALES ESTÁN AQUÍ!
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFj8ZYKUfzM-SnReauLHLpXf8EVy6sGAA",
+            authDomain: "sweetgestor-253d1.firebaseapp.com",
+            projectId: "sweetgestor-253d1",
+            storageBucket: "sweetgestor-253d1.firebasestorage.app",
+            messagingSenderId: "689486762121",
+            appId: "1:689486762121:web:a0437935ecbfc2c1b97658"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // ESTADO GLOBAL
-        let orders = JSON.parse(localStorage.getItem('cakeOrders')) || [];
+        let orders = [];
         let currentDate = new Date();
         let selectedCalendarDate = null;
-        
-        // Variables para imágenes temporales
         let currentNewImageBase64 = null;
         let currentEditImageBase64 = null;
         
-        // ICONOS SVG
         const icons = {
             edit: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`,
             trash: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`,
@@ -365,22 +324,29 @@
             whatsapp: `<svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`
         };
 
-        // INICIALIZACIÓN
-        document.addEventListener('DOMContentLoaded', () => {
-            updateUI();
+        // ESCUCHAR DATOS EN TIEMPO REAL DESDE FIREBASE
+        db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+            orders = [];
+            snapshot.forEach(doc => {
+                orders.push({ id: doc.id, ...doc.data() });
+            });
             
-            // Función auxiliar para manejar la validación y carga de imágenes
+            // Ocultar pantalla de carga cuando lleguen los datos
+            const loader = document.getElementById('loading-screen');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.classList.add('hidden'), 500);
+            
+            updateUI();
+        }, error => {
+            console.error("Error Firebase:", error);
+            showToast("Error de conexión. Revisa los permisos de la base de datos.", true);
+            document.getElementById('loading-screen').classList.add('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
             const handleImageInput = (e, previewId, containerId, callback) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
-                const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-                if (!validTypes.includes(file.type)) {
-                    showToast('Formato no soportado. Por favor, usa JPG o PNG.', true);
-                    e.target.value = ''; // Limpiar el input
-                    return;
-                }
-
                 compressImage(file, (base64) => {
                     callback(base64);
                     if(base64) {
@@ -390,26 +356,19 @@
                 });
             };
 
-            // Comprimir imagen nuevo pedido
             document.getElementById('form-image').addEventListener('change', function(e) {
-                handleImageInput(e, 'form-image-preview', 'form-image-preview-container', (base64) => {
-                    currentNewImageBase64 = base64;
-                });
+                handleImageInput(e, 'form-image-preview', 'form-image-preview-container', (b64) => currentNewImageBase64 = b64);
             });
 
-            // Comprimir imagen edición
             document.getElementById('edit-image').addEventListener('change', function(e) {
-                handleImageInput(e, 'edit-image-preview', 'edit-image-preview-container', (base64) => {
-                    currentEditImageBase64 = base64;
-                });
+                handleImageInput(e, 'edit-image-preview', 'edit-image-preview-container', (b64) => currentEditImageBase64 = b64);
             });
 
-            // Evento para guardar nuevo pedido
+            // CREAR PEDIDO (Guardar en la nube)
             document.getElementById('order-form').addEventListener('submit', function(e) {
                 e.preventDefault();
-                
+                const newId = Date.now().toString();
                 const newOrder = {
-                    id: Date.now().toString(),
                     customer: document.getElementById('form-customer').value,
                     phone: document.getElementById('form-phone').value,
                     price: document.getElementById('form-price').value,
@@ -417,34 +376,30 @@
                     description: document.getElementById('form-description').value,
                     deliveryDate: document.getElementById('form-date').value,
                     deliveryLocation: document.getElementById('form-location').value,
-                    image: currentNewImageBase64, // Guardar la imagen
+                    image: currentNewImageBase64,
                     status: 'pendiente',
                     createdAt: new Date().toISOString()
                 };
 
-                orders.unshift(newOrder); 
-                saveData();
-                
-                this.reset();
-                clearNewImage();
-                const successMsg = document.getElementById('form-success-msg');
-                successMsg.classList.remove('hidden');
-                
-                setTimeout(() => {
-                    successMsg.classList.add('hidden');
+                db.collection('orders').doc(newId).set(newOrder).then(() => {
+                    showToast("¡Pedido guardado en la nube exitosamente!");
+                    this.reset();
+                    clearNewImage();
                     switchTab('list'); 
-                }, 1500);
+                }).catch(err => {
+                    console.error(err);
+                    showToast("Error al guardar el pedido", true);
+                });
             });
 
-            // Evento para editar pedido
+            // EDITAR PEDIDO (Actualizar en la nube)
             document.getElementById('edit-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const id = document.getElementById('edit-id').value;
                 const index = orders.findIndex(o => o.id === id);
                 
                 if (index !== -1) {
-                    orders[index] = {
-                        ...orders[index],
+                    const updatedData = {
                         customer: document.getElementById('edit-customer').value,
                         phone: document.getElementById('edit-phone').value,
                         price: document.getElementById('edit-price').value,
@@ -452,85 +407,62 @@
                         description: document.getElementById('edit-description').value,
                         deliveryDate: document.getElementById('edit-date').value,
                         deliveryLocation: document.getElementById('edit-location').value,
-                        // Conservar imagen anterior si no se subió una nueva
                         image: currentEditImageBase64 !== null ? currentEditImageBase64 : orders[index].image
                     };
-                    saveData();
-                    closeEditModal();
-                    updateUI(); 
+
+                    db.collection('orders').doc(id).update(updatedData).then(() => {
+                        closeEditModal();
+                        showToast("¡Pedido actualizado!");
+                    }).catch(err => {
+                        console.error(err);
+                        showToast("Error al actualizar", true);
+                    });
                 }
             });
         });
 
-        // FUNCIONES DE IMAGEN
+        // COMPRESIÓN DE IMAGEN
         function compressImage(file, callback) {
             if (!file) { callback(null); return; }
             const reader = new FileReader();
-            
-            reader.onerror = () => {
-                showToast('Error al leer el archivo de imagen.', true);
-                callback(null);
-            };
-            
             reader.readAsDataURL(file);
             reader.onload = event => {
                 const img = new Image();
-                img.onerror = () => {
-                    showToast('Error al procesar la imagen.', true);
-                    callback(null);
-                };
                 img.src = event.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600;
-                    const MAX_HEIGHT = 600;
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
+                    let width = img.width, height = img.height;
+                    const max = 600;
+                    if (width > height) { if (width > max) { height *= max / width; width = max; } } 
+                    else { if (height > max) { width *= max / height; height = max; } }
+                    canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Comprimir a JPEG con calidad media (0.6)
                     callback(canvas.toDataURL('image/jpeg', 0.6));
                 }
             }
         }
+        
+        function clearNewImage() {
+            currentNewImageBase64 = null;
+            document.getElementById('form-image').value = '';
+            document.getElementById('form-image-preview-container').classList.add('hidden');
+        }
+        function clearEditImage() {
+            currentEditImageBase64 = null;
+            document.getElementById('edit-image').value = '';
+            document.getElementById('edit-image-preview-container').classList.add('hidden');
+        }
 
-        // SISTEMA DE NOTIFICACIONES (TOAST)
         function showToast(message, isError = false) {
             const toast = document.createElement('div');
             toast.className = `px-5 py-3.5 rounded-2xl shadow-xl text-white text-sm font-bold fade-in flex items-center gap-3 transform transition-all duration-300 ${isError ? 'bg-red-500 shadow-red-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`;
-            toast.innerHTML = isError 
-                ? `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${message}</span>`
-                : `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>${message}</span>`;
-            
+            toast.innerHTML = `<span>${message}</span>`;
             document.getElementById('toast-container').appendChild(toast);
-            
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px) scale(0.95)';
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
-        }
-
-        // FUNCIONES CORE
-        function saveData() {
-            try {
-                localStorage.setItem('cakeOrders', JSON.stringify(orders));
-                updateUI();
-            } catch (e) {
-                if (e.name === 'QuotaExceededError') {
-                    showToast('Memoria llena. Borra pedidos antiguos o sin foto.', true);
-                }
-            }
         }
 
         function updateUI() {
@@ -541,47 +473,38 @@
             if (selectedCalendarDate) showDayOrders(selectedCalendarDate.getDate());
         }
 
-        // NAVEGACIÓN
         function switchTab(tabName) {
             ['form', 'list', 'calendar', 'analysis'].forEach(tab => {
                 const viewEl = document.getElementById(`view-${tab}`);
                 const btnEl = document.getElementById(`tab-${tab}`);
-                
                 if(viewEl) viewEl.classList.add('hidden');
-                
                 if(btnEl) {
-                    if (tab === tabName) {
-                        btnEl.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all bg-rose-500 text-white shadow-soft-rose";
-                    } else {
-                        btnEl.className = "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-stone-500 hover:bg-white hover:text-stone-800";
-                    }
+                    btnEl.className = tab === tabName 
+                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all bg-rose-500 text-white shadow-soft-rose"
+                        : "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all text-stone-500 hover:bg-white hover:text-stone-800";
                 }
             });
             document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            if(tabName === 'calendar') renderCalendar();
-            if(tabName === 'analysis') renderAnalysis();
         }
 
-        // ACCIONES DE PEDIDOS
+        // CAMBIAR ESTADO Y ELIMINAR (EN LA NUBE)
         function toggleStatus(id) {
-            const index = orders.findIndex(o => o.id === id);
-            if (index !== -1) {
-                orders[index].status = orders[index].status === 'pendiente' ? 'entregado' : 'pendiente';
-                saveData();
+            const order = orders.find(o => o.id === id);
+            if (order) {
+                const newStatus = order.status === 'pendiente' ? 'entregado' : 'pendiente';
+                db.collection('orders').doc(id).update({ status: newStatus });
             }
         }
 
         function deleteOrder(id) {
-            if(confirm("¿Estás seguro de que deseas eliminar este pedido permanentemente?")) {
-                orders = orders.filter(o => o.id !== id);
-                saveData();
+            if(confirm("¿Estás seguro de eliminar este pedido?")) {
+                db.collection('orders').doc(id).delete();
             }
         }
 
         function openEditModal(id) {
             const order = orders.find(o => o.id === id);
             if (!order) return;
-            
             document.getElementById('edit-id').value = order.id;
             document.getElementById('edit-customer').value = order.customer || '';
             document.getElementById('edit-phone').value = order.phone || '';
@@ -591,9 +514,8 @@
             document.getElementById('edit-date').value = order.deliveryDate || '';
             document.getElementById('edit-location').value = order.deliveryLocation || '';
             
-            // Mostrar imagen si tiene
-            currentEditImageBase64 = null; // Resetear la variable temporal
-            document.getElementById('edit-image').value = ''; // Limpiar el input file
+            currentEditImageBase64 = null;
+            document.getElementById('edit-image').value = '';
             
             if (order.image) {
                 document.getElementById('edit-image-preview').src = order.image;
@@ -601,14 +523,10 @@
             } else {
                 document.getElementById('edit-image-preview-container').classList.add('hidden');
             }
-            
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
-        function closeEditModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-        }
-
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
         function openImageModal(id) {
             const order = orders.find(o => o.id === id);
             if (order && order.image) {
@@ -616,73 +534,50 @@
                 document.getElementById('image-modal').classList.remove('hidden');
             }
         }
+        function closeImageModal() { document.getElementById('image-modal').classList.add('hidden'); }
 
-        function closeImageModal() {
-            document.getElementById('image-modal').classList.add('hidden');
-            // Retraso breve para que no parpadee al cerrar
-            setTimeout(() => document.getElementById('image-modal-content').src = '', 300);
-        }
-
-        // RENDERIZADO DE TARJETAS
         function createCardHTML(order) {
             const isDelivered = order.status === 'entregado';
             const dateObj = new Date(order.deliveryDate);
             const formattedDate = dateObj.toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
-            
             const phoneStr = (order.phone || '').replace(/\D/g,'');
-            const wppMessage = encodeURIComponent(`Hola ${order.customer}, su pedido ha sido registrado con éxito.\n\n🎂 *Detalle:* ${order.concept}\n📝 *Descripción:* ${order.description}\n📅 *Fecha:* ${formattedDate}\n📍 *Lugar:* ${order.deliveryLocation}\n💰 *Total:* ${order.price || 'Por confirmar'}\n\n¡Gracias por su preferencia!`);
+            const wppMessage = encodeURIComponent(`Hola ${order.customer}, su pedido ha sido registrado con éxito.\n\n🎂 *Detalle:* ${order.concept}\n💰 *Total:* ${order.price}`);
             const wppLink = `https://wa.me/${phoneStr}?text=${wppMessage}`;
             const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryLocation)}`;
 
-            // Botón de imagen (si existe)
-            let imageButtonHTML = '';
-            if (order.image) {
-                imageButtonHTML = `
-                    <button onclick="openImageModal('${order.id}')" class="w-full py-3 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800 rounded-xl font-bold text-sm flex items-center justify-center transition-colors border border-purple-200 shadow-sm">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        Ver Referencia
-                    </button>
-                `;
-            }
+            let imageButtonHTML = order.image ? `
+                <button onclick="openImageModal('${order.id}')" class="w-full py-3 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl font-bold text-sm flex items-center justify-center border border-purple-200 shadow-sm mb-2">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Ver Referencia
+                </button>` : '';
 
             return `
-                <div class="bg-white rounded-3xl p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-stone-100 transition-all flex flex-col h-full ${isDelivered ? 'opacity-70 bg-stone-50' : 'transform hover:-translate-y-1'}">
+                <div class="bg-white rounded-3xl p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-100 flex flex-col h-full ${isDelivered ? 'opacity-70 bg-stone-50' : ''}">
                     <div class="p-5 flex-1">
                         <div class="flex justify-between items-start mb-4">
-                            <span class="text-[10px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-widest ${isDelivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                                ${order.status}
-                            </span>
+                            <span class="text-[10px] font-extrabold px-3 py-1.5 rounded-full uppercase ${isDelivered ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${order.status}</span>
                             <div class="flex gap-1">
-                                <button onclick="openEditModal('${order.id}')" class="p-2 text-stone-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors" title="Editar">${icons.edit}</button>
-                                <button onclick="deleteOrder('${order.id}')" class="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Eliminar">${icons.trash}</button>
+                                <button onclick="openEditModal('${order.id}')" class="p-2 text-stone-400 hover:text-rose-500 rounded-full">${icons.edit}</button>
+                                <button onclick="deleteOrder('${order.id}')" class="p-2 text-stone-400 hover:text-red-500 rounded-full">${icons.trash}</button>
                             </div>
                         </div>
-                        
-                        <h3 class="text-xl font-extrabold text-stone-800 mb-2 leading-tight">${order.concept}</h3>
-                        
+                        <h3 class="text-xl font-extrabold text-stone-800 mb-2">${order.concept}</h3>
                         <div class="flex flex-col gap-1.5 mb-4 text-sm">
-                            <p class="font-bold text-stone-700 flex items-center">${icons.user} ${order.customer}</p>
-                            ${order.phone ? `<p class="font-medium text-stone-600 flex items-center">${icons.phone} ${order.phone}</p>` : ''}
+                            <p class="font-bold text-stone-700">${icons.user} ${order.customer}</p>
+                            ${order.phone ? `<p class="font-medium text-stone-600">${icons.phone} ${order.phone}</p>` : ''}
                         </div>
-                        
-                        <div class="bg-stone-50 rounded-2xl p-4 text-sm font-medium text-stone-600 mb-5 border border-stone-100 break-words whitespace-pre-wrap">${order.description}</div>
-                        
+                        <div class="bg-stone-50 rounded-2xl p-4 text-sm font-medium text-stone-600 mb-5 border border-stone-100">${order.description}</div>
                         <div class="space-y-3 text-sm font-semibold text-stone-600 mb-2">
-                            <div class="flex items-start">${icons.clock} <span class="pt-0.5">${formattedDate}</span></div>
-                            <div class="flex items-start">
-                                ${icons.mapPin} 
-                                <a href="${mapsLink}" target="_blank" class="text-blue-500 hover:text-blue-700 hover:underline pt-0.5 block line-clamp-2">${order.deliveryLocation}</a>
-                            </div>
-                            ${order.price ? `<div class="flex items-center text-rose-600 font-extrabold text-base pt-2">${icons.currency} ${order.price}</div>` : ''}
+                            <div>${icons.clock} ${formattedDate}</div>
+                            <div>${icons.mapPin} <a href="${mapsLink}" target="_blank" class="text-blue-500 hover:underline">${order.deliveryLocation}</a></div>
+                            ${order.price ? `<div class="text-rose-600 font-extrabold text-base pt-2">${icons.currency} ${order.price}</div>` : ''}
                         </div>
                     </div>
-                    
-                    <div class="p-4 pt-0 mt-auto space-y-2">
+                    <div class="p-4 pt-0 mt-auto">
                         ${imageButtonHTML}
-                        <a href="${wppLink}" target="_blank" class="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center transition-all ${!order.phone ? 'opacity-50 cursor-not-allowed bg-stone-100 text-stone-400 pointer-events-none' : 'bg-[#25D366] hover:bg-[#1fbc5a] text-white shadow-sm hover:shadow-md'}">
+                        <a href="${wppLink}" target="_blank" class="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center mb-2 bg-[#25D366] text-white">
                             ${icons.whatsapp} WhatsApp
                         </a>
-                        <button onclick="toggleStatus('${order.id}')" class="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center transition-all ${!isDelivered ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'}">
+                        <button onclick="toggleStatus('${order.id}')" class="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center ${!isDelivered ? 'bg-stone-100 text-stone-700' : 'bg-emerald-500 text-white'}">
                             ${!isDelivered ? 'Marcar como Entregado' : '✓ Entregado'}
                         </button>
                     </div>
@@ -693,7 +588,6 @@
         function renderOrdersList() {
             const container = document.getElementById('orders-container');
             const emptyState = document.getElementById('empty-state');
-            
             if (orders.length === 0) {
                 container.innerHTML = '';
                 emptyState.classList.remove('hidden');
@@ -703,37 +597,21 @@
             }
         }
 
-        // LÓGICA DEL CALENDARIO
-        function changeMonth(offset) {
-            currentDate.setMonth(currentDate.getMonth() + offset);
-            selectedCalendarDate = null;
-            document.getElementById('selected-day-container').classList.add('hidden');
-            renderCalendar();
-        }
-
-        function resetCalendar() {
-            currentDate = new Date();
-            selectedCalendarDate = null;
-            document.getElementById('selected-day-container').classList.add('hidden');
-            renderCalendar();
-        }
-
+        // LÓGICA DEL CALENDARIO Y ANÁLISIS REUTILIZADA
+        function changeMonth(offset) { currentDate.setMonth(currentDate.getMonth() + offset); selectedCalendarDate = null; document.getElementById('selected-day-container').classList.add('hidden'); renderCalendar(); }
+        function resetCalendar() { currentDate = new Date(); selectedCalendarDate = null; document.getElementById('selected-day-container').classList.add('hidden'); renderCalendar(); }
+        
         function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            
+            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
             
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
             
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div class="min-h-[80px]"></div>`;
-            }
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="min-h-[80px]"></div>`;
             
             for (let day = 1; day <= daysInMonth; day++) {
                 const monthStr = String(month + 1).padStart(2, '0');
@@ -744,11 +622,7 @@
                 const pendingCount = dayOrders.filter(o => o.status === 'pendiente').length;
                 const deliveredCount = dayOrders.length - pendingCount;
                 
-                const isSelected = selectedCalendarDate && 
-                                  selectedCalendarDate.getDate() === day && 
-                                  selectedCalendarDate.getMonth() === month && 
-                                  selectedCalendarDate.getFullYear() === year;
-
+                const isSelected = selectedCalendarDate && selectedCalendarDate.getDate() === day && selectedCalendarDate.getMonth() === month && selectedCalendarDate.getFullYear() === year;
                 let classes = "min-h-[90px] p-2 md:p-3 rounded-2xl border-2 transition-all cursor-pointer relative flex flex-col ";
                 if (isSelected) classes += " border-rose-500 bg-rose-50 shadow-sm";
                 else if (dayOrders.length > 0) classes += " border-amber-200 bg-amber-50/30 hover:border-amber-400";
@@ -757,145 +631,47 @@
                 let indicators = '';
                 if (dayOrders.length > 0) {
                     indicators += `<div class="mt-auto flex flex-col gap-1 w-full">`;
-                    if (pendingCount > 0) {
-                        indicators += `<div class="w-full bg-amber-100 text-amber-700 text-[9px] md:text-[10px] font-extrabold px-1.5 py-1 rounded-lg text-center truncate">${pendingCount} pdtes</div>`;
-                    }
-                    if (deliveredCount > 0) {
-                        indicators += `<div class="w-full bg-emerald-100 text-emerald-700 text-[9px] md:text-[10px] font-extrabold px-1.5 py-1 rounded-lg text-center truncate">${deliveredCount} listos</div>`;
-                    }
+                    if (pendingCount > 0) indicators += `<div class="w-full bg-amber-100 text-amber-700 text-[9px] md:text-[10px] font-extrabold px-1.5 py-1 rounded-lg text-center truncate">${pendingCount} pdtes</div>`;
+                    if (deliveredCount > 0) indicators += `<div class="w-full bg-emerald-100 text-emerald-700 text-[9px] md:text-[10px] font-extrabold px-1.5 py-1 rounded-lg text-center truncate">${deliveredCount} listos</div>`;
                     indicators += `</div>`;
                 }
-
-                grid.innerHTML += `
-                    <div class="${classes}" onclick="showDayOrders(${day})">
-                        <span class="text-sm font-extrabold mb-1 ${isSelected ? 'text-rose-600' : 'text-stone-700'}">${day}</span>
-                        ${indicators}
-                    </div>
-                `;
+                grid.innerHTML += `<div class="${classes}" onclick="showDayOrders(${day})"><span class="text-sm font-extrabold mb-1 ${isSelected ? 'text-rose-600' : 'text-stone-700'}">${day}</span>${indicators}</div>`;
             }
         }
 
         function showDayOrders(day) {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
             selectedCalendarDate = new Date(year, month, day);
-            
             renderCalendar();
             
             const monthStr = String(month + 1).padStart(2, '0');
             const dayStr = String(day).padStart(2, '0');
-            const dateCompareStr = `${year}-${monthStr}-${dayStr}`;
+            const dayOrders = orders.filter(o => o.deliveryDate && o.deliveryDate.startsWith(`${year}-${monthStr}-${dayStr}`));
             
-            const dayOrders = orders.filter(o => o.deliveryDate && o.deliveryDate.startsWith(dateCompareStr));
-            
-            const container = document.getElementById('selected-day-container');
-            const title = document.getElementById('selected-day-title');
-            const ordersGrid = document.getElementById('selected-day-orders');
-            const emptyMsg = document.getElementById('selected-day-empty');
-            
-            container.classList.remove('hidden');
-            
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            title.innerHTML = `<span class="bg-white p-2 rounded-xl shadow-sm"><svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></span> Entregas para el ${selectedCalendarDate.toLocaleDateString('es-ES', options)}`;
+            document.getElementById('selected-day-container').classList.remove('hidden');
+            document.getElementById('selected-day-title').innerHTML = `Entregas para el ${selectedCalendarDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}`;
             
             if (dayOrders.length === 0) {
-                ordersGrid.innerHTML = '';
-                emptyMsg.classList.remove('hidden');
+                document.getElementById('selected-day-orders').innerHTML = '';
+                document.getElementById('selected-day-empty').classList.remove('hidden');
             } else {
-                emptyMsg.classList.add('hidden');
-                ordersGrid.innerHTML = dayOrders.map(createCardHTML).join('');
+                document.getElementById('selected-day-empty').classList.add('hidden');
+                document.getElementById('selected-day-orders').innerHTML = dayOrders.map(createCardHTML).join('');
             }
         }
 
-        // LÓGICA DE ANÁLISIS
         function renderAnalysis() {
-            if (!document.getElementById('view-analysis') || document.getElementById('view-analysis').classList.contains('hidden')) return;
-
+            if (document.getElementById('view-analysis').classList.contains('hidden')) return;
             document.getElementById('analysis-total-orders').textContent = orders.length;
 
             let totalIncome = 0;
-            orders.forEach(order => {
-                if(order.price) {
-                    const numStr = order.price.replace(/[^0-9.,]/g, '').replace(',', '.');
-                    const val = parseFloat(numStr);
+            orders.forEach(o => {
+                if(o.price) {
+                    const val = parseFloat(o.price.replace(/[^0-9.,]/g, '').replace(',', '.'));
                     if(!isNaN(val)) totalIncome += val;
                 }
             });
             document.getElementById('analysis-total-income').textContent = `S/ ${totalIncome.toFixed(2)}`;
-
-            const monthCounts = {};
-            const monthNames = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-            
-            orders.forEach(order => {
-                if(order.deliveryDate) {
-                    const date = new Date(order.deliveryDate);
-                    const key = `${date.getFullYear()}-${date.getMonth()}`;
-                    monthCounts[key] = (monthCounts[key] || 0) + 1;
-                }
-            });
-
-            const sortedMonths = Object.keys(monthCounts).sort().slice(-6);
-            let maxMonthVal = Math.max(...Object.values(monthCounts), 1); 
-            
-            const chartContainer = document.getElementById('analysis-monthly-chart');
-            const labelsContainer = document.getElementById('analysis-monthly-labels');
-            chartContainer.innerHTML = '';
-            labelsContainer.innerHTML = '';
-
-            if (sortedMonths.length === 0) {
-                chartContainer.innerHTML = '<div class="w-full text-center text-stone-400 text-sm font-medium pb-4">Aún no hay datos mensuales suficientes</div>';
-            } else {
-                sortedMonths.forEach(key => {
-                    const [year, monthIndex] = key.split('-');
-                    const count = monthCounts[key];
-                    const heightPercent = (count / maxMonthVal) * 100;
-                    
-                    chartContainer.innerHTML += `
-                        <div class="flex-1 flex flex-col justify-end group relative h-full">
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${count} pedidos</div>
-                            <div class="w-full bg-emerald-100 rounded-t-xl group-hover:bg-emerald-300 transition-colors" style="height: ${heightPercent}%"></div>
-                        </div>
-                    `;
-                    labelsContainer.innerHTML += `<div class="flex-1 text-center text-[10px] font-extrabold text-stone-400">${monthNames[parseInt(monthIndex)]}</div>`;
-                });
-            }
-
-            const renderHorizontalBars = (dataObj, containerId, colorClass) => {
-                const container = document.getElementById(containerId);
-                const sorted = Object.entries(dataObj).sort((a, b) => b[1] - a[1]).slice(0, 5); 
-                let maxVal = Math.max(...Object.values(dataObj), 1);
-
-                if (sorted.length === 0) {
-                    container.innerHTML = '<div class="text-stone-400 text-sm font-medium italic p-4 bg-stone-50 rounded-2xl text-center">Aún no hay datos registrados</div>';
-                    return;
-                }
-
-                container.innerHTML = sorted.map(([name, count], index) => {
-                    const widthPercent = (count / maxVal) * 100;
-                    return `
-                        <div>
-                            <div class="flex justify-between items-center text-sm font-bold text-stone-700 mb-2">
-                                <div class="flex items-center gap-3 truncate">
-                                    <span class="w-6 h-6 rounded-full bg-stone-100 text-[10px] flex items-center justify-center text-stone-500 font-extrabold">${index + 1}</span>
-                                    <span class="truncate" title="${name}">${name}</span>
-                                </div>
-                                <span class="bg-stone-100 px-2 py-0.5 rounded-lg text-xs">${count}</span>
-                            </div>
-                            <div class="w-full bg-stone-100 rounded-full h-2">
-                                <div class="${colorClass} h-2 rounded-full" style="width: ${widthPercent}%"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            };
-
-            const conceptCounts = {};
-            orders.forEach(o => { if(o.concept) conceptCounts[o.concept] = (conceptCounts[o.concept] || 0) + 1; });
-            renderHorizontalBars(conceptCounts, 'analysis-top-concepts', 'bg-amber-400');
-
-            const locationCounts = {};
-            orders.forEach(o => { if(o.deliveryLocation) locationCounts[o.deliveryLocation] = (locationCounts[o.deliveryLocation] || 0) + 1; });
-            renderHorizontalBars(locationCounts, 'analysis-top-locations', 'bg-blue-500');
         }
     </script>
 </body>
